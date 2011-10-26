@@ -241,16 +241,12 @@ NSString *BWQuincyLocalize(NSString *stringToken) {
     if (!_sendingInProgress && [self hasPendingCrashReport]) {
         _sendingInProgress = YES;
         if (!self.autoSubmitCrashReport && [self hasNonApprovedCrashReports]) {
-<<<<<<< HEAD
-				NSString *appName = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleDisplayName"];
-=======
 
             if (self.delegate != nil && [self.delegate respondsToSelector:@selector(willShowSubmitCrashReportAlert)]) {
                 [self.delegate willShowSubmitCrashReportAlert];
             }
 
             NSString *appName = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleDisplayName"];
->>>>>>> 07b2bd1b9acb9feff47321d140e4c27b2d38bb07
             
             UIAlertView *alertView = [[UIAlertView alloc] initWithTitle:[NSString stringWithFormat:BWQuincyLocalize(@"CrashDataFoundTitle"), appName]
                                                                 message:[NSString stringWithFormat:BWQuincyLocalize(@"CrashDataFoundDescription"), appName]
