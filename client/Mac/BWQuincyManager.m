@@ -33,6 +33,7 @@
 @interface BWQuincyManager(private)
 - (void) startManager;
 
+- (void) _postXML:(NSString*)xml toURL:(NSURL*)url;
 - (void) searchCrashLogFile:(NSString *)path;
 - (BOOL) hasPendingCrashReport;
 - (void) returnToMainApplication;
@@ -131,7 +132,7 @@ const CGFloat kDetailsHeight = 285;
         _appIdentifier = [anAppIdentifier copy];
     }
     
-    [self setSubmissionURL:[NSString stringWithFormat:@"https://beta.hockeyapp.net/api/2/apps/%@/crashes", anAppIdentifier]];
+    [self setSubmissionURL:@"https://rink.hockeyapp.net/"];
 }
 
 #pragma mark -
@@ -139,6 +140,12 @@ const CGFloat kDetailsHeight = 285;
 
 - (BOOL) hasPendingCrashReport {
 	BOOL returnValue = NO;
+    
+    if (![[NSUserDefaults standardUserDefaults] valueForKey: @"CrashReportSender.lastCrashDate"]) {
+        [[NSUserDefaults standardUserDefaults] setValue: [NSDate date]
+                                                 forKey: @"CrashReportSender.lastCrashDate"];
+        return returnValue;
+    }
     
     NSArray* libraryDirectories = NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, NSUserDomainMask, TRUE);
     // Snow Leopard is having the log files in another location
@@ -218,12 +225,23 @@ const CGFloat kDetailsHeight = 285;
 - (void) sendReport:(NSString *)xml {
     [self returnToMainApplication];
 	
-    [NSTimer scheduledTimerWithTimeInterval:0.0 target:self selector:@selector(postXML:) userInfo:xml repeats:NO];	 
+    [self _postXML:[NSString stringWithFormat:@"<crashes>%@</crashes>", xml]
+             toURL:[NSURL URLWithString:self.submissionURL]];
 }
 
-- (void) postXML:(NSTimer *) timer {
-	NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:_submissionURL]];
-	NSString *boundary = @"----FOO";
+- (void)_postXML:(NSString*)xml toURL:(NSURL*)url {
+	NSMutableURLRequest *request = nil;
+    NSString *boundary = @"----FOO";
+
+    if (self.appIdentifier) {
+        request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:[NSString stringWithFormat:@"%@api/2/apps/%@/crashes",
+                                                                            self.submissionURL,
+                                                                            [self.appIdentifier stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding]
+                                                                            ]
+                                                       ]];
+    } else {
+        request = [NSMutableURLRequest requestWithURL:url];
+    }
 	
 	[request setValue:@"Quincy/Mac" forHTTPHeaderField:@"User-Agent"];
     [request setValue:@"gzip" forHTTPHeaderField:@"Accept-Encoding"];
@@ -240,7 +258,7 @@ const CGFloat kDetailsHeight = 285;
     } else {
         [postBody appendData:[@"Content-Disposition: form-data; name=\"xmlstring\"\r\n\r\n" dataUsingEncoding:NSUTF8StringEncoding]];
 	}
-	[postBody appendData:[[timer userInfo] dataUsingEncoding:NSUTF8StringEncoding]];
+	[postBody appendData:[xml dataUsingEncoding:NSUTF8StringEncoding]];
     [postBody appendData:[[NSString stringWithFormat:@"\r\n--%@--\r\n", boundary] dataUsingEncoding:NSUTF8StringEncoding]];
 	[request setHTTPBody:postBody];
     
@@ -460,7 +478,7 @@ const CGFloat kDetailsHeight = 285;
 	[NSApp stopModal];
 	
 	if ( _delegate != nil && [_delegate respondsToSelector:@selector(sendReport:)])
-		[_delegate sendReport:_xml];
+        [_delegate performSelector:@selector(sendReport:) withObject:_xml afterDelay:0.01];
 }
 
 

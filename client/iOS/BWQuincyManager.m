@@ -90,6 +90,22 @@ NSString *BWQuincyLocalize(NSString *stringToken) {
 
 @synthesize appIdentifier = _appIdentifier;
 
+#if __IPHONE_OS_VERSION_MIN_REQUIRED >= 40000
++(BWQuincyManager *)sharedQuincyManager
+{   
+    static BWQuincyManager *sharedInstance = nil;
+    static dispatch_once_t pred;
+    
+    if (sharedInstance) return sharedInstance;
+    
+    dispatch_once(&pred, ^{
+        sharedInstance = [BWQuincyManager alloc];
+        sharedInstance = [sharedInstance init];
+    });
+    
+    return sharedInstance;
+}
+#else
 + (BWQuincyManager *)sharedQuincyManager {
 	static BWQuincyManager *quincyManager = nil;
 	
@@ -99,6 +115,7 @@ NSString *BWQuincyLocalize(NSString *stringToken) {
 	
 	return quincyManager;
 }
+#endif
 
 - (id) init {
     if ((self = [super init])) {
@@ -213,7 +230,7 @@ NSString *BWQuincyLocalize(NSString *stringToken) {
         _appIdentifier = [anAppIdentifier copy];
     }
     
-    [self setSubmissionURL:@"https://beta.hockeyapp.net/"];
+    [self setSubmissionURL:@"https://rink.hockeyapp.net/"];
 }
 
 #pragma mark -
@@ -224,7 +241,16 @@ NSString *BWQuincyLocalize(NSString *stringToken) {
     if (!_sendingInProgress && [self hasPendingCrashReport]) {
         _sendingInProgress = YES;
         if (!self.autoSubmitCrashReport && [self hasNonApprovedCrashReports]) {
+<<<<<<< HEAD
 				NSString *appName = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleDisplayName"];
+=======
+
+            if (self.delegate != nil && [self.delegate respondsToSelector:@selector(willShowSubmitCrashReportAlert)]) {
+                [self.delegate willShowSubmitCrashReportAlert];
+            }
+
+            NSString *appName = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleDisplayName"];
+>>>>>>> 07b2bd1b9acb9feff47321d140e4c27b2d38bb07
             
             UIAlertView *alertView = [[UIAlertView alloc] initWithTitle:[NSString stringWithFormat:BWQuincyLocalize(@"CrashDataFoundTitle"), appName]
                                                                 message:[NSString stringWithFormat:BWQuincyLocalize(@"CrashDataFoundDescription"), appName]
@@ -287,7 +313,7 @@ NSString *BWQuincyLocalize(NSString *stringToken) {
 
 
 - (void) showCrashStatusMessage {
-	UIAlertView *alertView;
+	UIAlertView *alertView = nil;
 	
 	if (_serverResult >= CrashReportStatusAssigned && 
         _crashIdenticalCurrentVersion) {
@@ -329,7 +355,7 @@ NSString *BWQuincyLocalize(NSString *stringToken) {
 				break;
 		}
 		
-		if (alertView != nil) {
+		if (alertView) {
 			[alertView setTag: QuincyKitAlertTypeFeedback];
 			[alertView show];
 			[alertView release];
@@ -466,15 +492,15 @@ NSString *BWQuincyLocalize(NSString *stringToken) {
     if (self.autoSubmitDeviceUDID) {
         userid = [self deviceIdentifier];
     } else if (self.delegate != nil && [self.delegate respondsToSelector:@selector(crashReportUserID)]) {
-		userid = [self.delegate crashReportUserID];
+		userid = [self.delegate crashReportUserID] ?: @"";
 	}
 	
 	if (self.delegate != nil && [self.delegate respondsToSelector:@selector(crashReportContact)]) {
-		contact = [self.delegate crashReportContact];
+		contact = [self.delegate crashReportContact] ?: @"";
 	}
 	
 	if (self.delegate != nil && [self.delegate respondsToSelector:@selector(crashReportDescription)]) {
-		description = [self.delegate crashReportDescription];
+		description = [self.delegate crashReportDescription] ?: @"";
 	}
 	
     NSMutableString *crashes = nil;
@@ -502,17 +528,17 @@ NSString *BWQuincyLocalize(NSString *stringToken) {
                 crashes = [NSMutableString string];
             }
             
-			[crashes appendFormat:@"<crash><applicationname>%s</applicationname><bundleidentifier>%@</bundleidentifier><systemversion>%@</systemversion><platform>%@</platform><senderversion>%@</senderversion><version>%@</version><userid>%@</userid><contact>%@</contact><description><![CDATA[%@]]></description><log><![CDATA[%@]]></log></crash>",
+			[crashes appendFormat:@"<crash><applicationname>%s</applicationname><bundleidentifier>%@</bundleidentifier><systemversion>%@</systemversion><platform>%@</platform><senderversion>%@</senderversion><version>%@</version><log><![CDATA[%@]]></log><userid>%@</userid><contact>%@</contact><description><![CDATA[%@]]></description></crash>",
              [[[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleExecutable"] UTF8String],
              report.applicationInfo.applicationIdentifier,
-             [[UIDevice currentDevice] systemVersion],
+             report.systemInfo.operatingSystemVersion,
              [self _getDevicePlatform],
              [[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleVersion"],
              report.applicationInfo.applicationVersion,
+             crashLogString,
              userid,
              contact,
-             description,
-             crashLogString];
+             description];
             
             // store this crash report as user approved, so if it fails it will retry automatically
             [approvedCrashReports setObject:[NSNumber numberWithBool:YES] forKey:[_crashFiles objectAtIndex:i]];

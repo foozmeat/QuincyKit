@@ -111,7 +111,11 @@ typedef enum CrashReportStatus {
 -(NSString *) crashReportContact;
 @end
 
-@interface BWQuincyManager : NSObject <NSXMLParserDelegate> {
+@interface BWQuincyManager : NSObject 
+#if defined(MAC_OS_X_VERSION_10_6) && (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_6) 
+ <NSXMLParserDelegate> 
+#endif
+{
 	CrashReportStatus	_serverResult;
 	
     NSInteger			_statusCode;
@@ -151,7 +155,6 @@ typedef enum CrashReportStatus {
 
 - (void) cancelReport;
 - (void) sendReport:(NSString *)xml;
-- (void) postXML:(NSTimer *) timer;
 
 - (NSString *) applicationName;
 - (NSString *) applicationVersionString;
