@@ -387,7 +387,7 @@ NSString *BWQuincyLocalize(NSString *stringToken) {
 				case 0:
 					break;
 				case 1:
-					[self.delegate askForCrashInfo:@"Please describe what you were doing when the crash occured:\n\n"];
+					[self.delegate askForCrashInfo:@"Please describe what you were doing when the crash occurred:\n\n"];
 			}
 			break;
 
